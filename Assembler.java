@@ -70,16 +70,13 @@ public class Assembler {
         table.put("THAT", 4);
         table.put("SCREEN", 16384);
         table.put("KBD", 24576);
-        // table.put("ponggame.0", 16);
-        // table.put("math.1", 17);
         for (int i = 0; i < 16; i++) {
             table.put("R"+i, i);
         }
     }
-
+    static int variableCursor = 16;
     public static void main(String[] args) throws IOException {
         String root = args[0];
-        int variableCursor = 16;
         Scanner inputFile = new Scanner(new File(root+".asm"));
         PrintWriter tempFile = new PrintWriter(root+".temp");
         int lineNum = 0;
@@ -91,21 +88,13 @@ public class Assembler {
                     continue;
                 }
                 line = remove(line);
-                if (line.charAt(0) == '@') {
-                    if (line.contains(".") && isNumeric(line.split("\\.", 2)[1]) && !table.containsKey(line.substring(1))) {
-                        table.put(line.substring(1), variableCursor);
-                        variableCursor++;
-                    }// } else {
-                    //     table.put(line.substring(1), variableCursor);
-                    //     variableCursor++;
-                    // }
-                } else if (line.charAt(0) == '(') {
+                if (line.charAt(0) == '(') {
                     line = line.replaceAll("[()]", "");
                     table.put(line, lineNum);
-                    continue;
+                } else {
+                    lineNum++;
+                    tempFile.printf("%s\n", line);
                 }
-                tempFile.printf("%s\n", line);
-                lineNum++;
             }
         }
         tempFile.close();
@@ -125,9 +114,15 @@ public class Assembler {
         }
         outputFile.close();
         inputFile.close();
-        // (new File(root+".temp")).delete();
+        (new File(root+".temp")).delete();
 
     }
+    // allocate memory location
+    public static void addVariable(String line) {
+        table.put(line, variableCursor);
+        variableCursor++;
+    }
+
     // remove space and
     public static String remove(String line) {
         line = line.replaceAll(" ", "");
@@ -147,13 +142,15 @@ public class Assembler {
             line = (String.format("%16s", Integer.toBinaryString(numVal)).replaceAll(" ", "0"));
 
         } else {
+            if (!table.containsKey(line)) {
+                addVariable(line);
+            }
             try {
                 numVal = table.get(line);
             } catch (NullPointerException e) {
                 numVal = 0;
                 System.out.printf("ERROR - Null pointer exception, line (%s)\n", line);
             }
-
             line = (String.format("%16s", Integer.toBinaryString(numVal))).replaceAll(" ", "0");
         }
         return line;
